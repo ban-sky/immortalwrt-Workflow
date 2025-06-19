@@ -1,1 +1,73 @@
+name: Compile ImmortalWrt
 
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04  # Gitea 默认支持 ubuntu-latest，而不是 pve-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.1.1  # Gitea 也支持 actions/checkout
+
+      - name: Update system and install dependencies
+        run: |
+           apt update -y
+           apt full-upgrade -y
+           apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
+            bzip2 ccache clang cmake cpio curl device-tree-compiler ecj fastjar flex gawk gettext gcc-multilib \
+            g++-multilib git gnutls-dev gperf haveged help2man intltool lib32gcc-s1 libc6-dev-i386 libelf-dev \
+            libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses-dev libpython3-dev \
+            libreadline-dev libssl-dev libtool libyaml-dev libz-dev lld llvm lrzsz mkisofs msmtp nano \
+            ninja-build p7zip p7zip-full patch pkgconf python3 python3-pip python3-ply python3-docutils \
+            python3-pyelftools qemu-utils re2c rsync scons squashfs-tools subversion swig texinfo uglifyjs \
+            upx-ucl unzip vim wget xmlto xxd zlib1g-dev zstd
+
+      - name: Clone ImmortalWrt
+        run: git clone https://github.com/immortalwrt/immortalwrt.git
+
+      - name: Copy script and prepare config
+        run: |
+          cp ax3000t-v2.config immortalwrt/
+          cp ipaddr.sh immortalwrt/
+          cd immortalwrt
+          chmod +x ipaddr.sh
+          ./ipaddr.sh
+
+      - name: Update feeds
+        run: |
+          cd immortalwrt
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Load config and verify configuration file
+        run: |
+          cd immortalwrt
+          if [ ! -f ax3000t-v2.config ]; then
+            echo "错误：未找到 ax3000t-v2.config 文件，构建失败！"
+            exit 1
+          fi
+          echo "加载配置从 ax3000t-v2.config"
+          cp ax3000t-v2.config .config || { echo "复制配置文件失败"; exit 1; }
+
+      - name: Build firmware
+        run: |
+          cd immortalwrt
+          make V=s || { echo "构建失败"; exit 1; }
+
+      - name: List generated files
+        run: |
+          cd immortalwrt/bin/targets/mediatek/mt7981/
+          ls -l || { echo "未能列出生成的文件"; exit 1; }
+
+      - name: Upload firmware artifacts
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: openwrt_firmware_ax3000t_an8855_${{ gitea.run_id }}  # 使用 gitea.run_id 而不是 github.run_id
+          path: |
+            immortalwrt/bin/targets/mediatek/mt7981/*.bin
+          if-no-files-found: error
