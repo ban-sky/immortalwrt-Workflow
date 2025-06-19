@@ -65,7 +65,7 @@ jobs:
 
       - name: Upload firmware artifacts
         if: success()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: openwrt_firmware_ax3000t_an8855_${{ github.run_id }}
           path: |
