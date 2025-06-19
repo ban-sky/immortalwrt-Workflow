@@ -8,16 +8,16 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04  # Gitea 默认支持 ubuntu-latest，而不是 pve-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.1.1  # Gitea 也支持 actions/checkout
+        uses: actions/checkout@v4
 
       - name: Update system and install dependencies
         run: |
-           apt update -y
-           apt full-upgrade -y
-           apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
+          apt update -y
+          apt full-upgrade -y
+          apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
             bzip2 ccache clang cmake cpio curl device-tree-compiler ecj fastjar flex gawk gettext gcc-multilib \
             g++-multilib git gnutls-dev gperf haveged help2man intltool lib32gcc-s1 libc6-dev-i386 libelf-dev \
             libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses-dev libpython3-dev \
@@ -67,7 +67,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v3
         with:
-          name: openwrt_firmware_ax3000t_an8855_${{ gitea.run_id }}  # 使用 gitea.run_id 而不是 github.run_id
+          name: openwrt_firmware_ax3000t_an8855_${{ github.run_id }}
           path: |
             immortalwrt/bin/targets/mediatek/mt7981/*.bin
           if-no-files-found: error
