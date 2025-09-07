@@ -56,7 +56,7 @@ jobs:
       - name: Build firmware
         run: |
           cd immortalwrt
-          make V=s || { echo "构建失败"; exit 1; }
+          make || { echo "构建失败"; exit 1; }
 
       - name: List generated files
         run: |
