@@ -27,27 +27,27 @@ jobs:
             upx-ucl unzip vim wget xmlto xxd zlib1g-dev zstd
 
       - name: Create and login as OpenWrt user
-  run: |
-    echo "正在创建用户并登录..."
-    ssh -o StrictHostKeyChecking=no root@${{ secrets.OPENWRT_IP }} << 'EOF'
-    # 创建用户并设置密码
-    if ! id -u openwrt >/dev/null 2>&1; then
-      adduser openwrt -s /bin/ash
-      echo "openwrt:0.123" | chpasswd
-      echo "用户 openwrt 创建成功"
-    else
-      echo "用户 openwrt 已存在，更新密码"
-      echo "openwrt:0.123" | chpasswd
-    fi
-    EOF
+        run: |
+          echo "正在创建用户并登录..."
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.OPENWRT_IP }} << 'EOF'
+          # 创建用户并设置密码
+          if ! id -u openwrt >/dev/null 2>&1; then
+            adduser openwrt -s /bin/ash
+            echo "openwrt:0.123" | chpasswd
+            echo "用户 openwrt 创建成功"
+          else
+            echo "用户 openwrt 已存在，更新密码"
+            echo "openwrt:0.123" | chpasswd
+          fi
+          EOF
 
-    # 使用新创建的用户登录测试
-    ssh -o StrictHostKeyChecking=no openwrt@${{ secrets.OPENWRT_IP }} << 'EOF'
-    echo "成功以 openwrt 用户登录系统！"
-    echo "当前用户: $(whoami)"
-    echo "工作目录: $(pwd)"
-    echo "系统信息: $(uname -a)"
-    EOF
+         # 使用新创建的用户登录测试
+         ssh -o StrictHostKeyChecking=no openwrt@${{ secrets.OPENWRT_IP }} << 'EOF'
+         echo "成功以 openwrt 用户登录系统！"
+         echo "当前用户: $(whoami)"
+         echo "工作目录: $(pwd)"
+         echo "系统信息: $(uname -a)"
+         EOF
       - name: Clone ImmortalWrt
         run: git clone https://github.com/immortalwrt/immortalwrt.git
 
