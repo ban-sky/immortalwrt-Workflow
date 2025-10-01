@@ -7,18 +7,17 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4.1.1
 
     - name: Set up Docker
       uses: docker/setup-buildx-action@v1
 
     - name: Pull the latest image
-      run: |
-        docker pull alpine:latest
+      run: docker pull alpine:latest
 
     - name: Run the build script
       run: |
