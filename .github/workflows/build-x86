@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# 更新系统软件包
+echo "Updating system packages..."
+bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)
+
+# 创建用户op，不设置密码
+echo "Creating user op..."
+useradd -m op
+
+# 切换到op用户
+su - op <<EOF
+
+# 克隆项目
+echo "Cloning project..."
+git clone https://github.com/immortalwrt/immortalwrt.git
+cd immortalwrt
+
+# 获取软件包并更新软件包
+echo "Fetching and updating feeds..."
+./scripts/feeds update -a
+./scripts/feeds install -a
+
+# make编译
+echo "Starting compilation..."
+make -j$(nproc)
+EOF
+
+echo "Compilation completed."
