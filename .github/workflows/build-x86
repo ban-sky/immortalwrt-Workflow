@@ -1,29 +1,39 @@
-#!/bin/bash
+name: ImmortalWrt Build Workflow
 
-# 更新系统软件包
-echo "Updating system packages..."
-bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)
+on:
+  push:
+    branches:
+      - main
 
-# 创建用户op，不设置密码
-echo "Creating user op..."
-useradd -m op
+jobs:
+  build:
+    runs-on: ubuntu-20.04
 
-# 切换到op用户
-su - op <<EOF
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-# 克隆项目
-echo "Cloning project..."
-git clone https://github.com/immortalwrt/immortalwrt.git
-cd immortalwrt
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v1
 
-# 获取软件包并更新软件包
-echo "Fetching and updating feeds..."
-./scripts/feeds update -a
-./scripts/feeds install -a
+    - name: Pull the latest image
+      run: |
+        docker pull alpine:latest
 
-# make编译
-echo "Starting compilation..."
-make -j$(nproc)
+    - name: Run the build script
+      run: |
+        docker run --rm -v $(pwd):/home/op/immortalwrt -w /home/op/immortalwrt alpine:latest bash <<EOF
+          # Update system software packages
+          apk add --no-cache git make
+
+          # Clone project
+          git clone https://github.com/immortalwrt/immortalwrt.git
+          cd immortalwrt
+
+          # Get software packages and update
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+          # Make compile
+          make -j$(nproc)
 EOF
-
-echo "Compilation completed."
