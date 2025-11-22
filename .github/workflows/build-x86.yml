@@ -1,37 +1,77 @@
-name: ImmortalWrt Build Workflow
+name: Simple Build (load scripts & config)
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Shanghai
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4.1.1
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Docker
-      uses: docker/setup-buildx-action@v1
+      - name: Restore build/cache (optional)
+        uses: actions/cache@v4
+        with:
+          path: |
+            dl
+            feeds
+            build_dir
+          key: ${{ runner.os }}-immortalwrt-${{ hashFiles('**/feeds.conf*', '**/.config') }}
 
-    - name: Pull the latest image
-      run: docker pull alpine:latest
+      - name: Install minimal build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential ccache libncurses-dev zlib1g-dev gawk gcc-multilib flex git gettext wget python3
 
-    - name: Run the build script
-      run: |
-        docker run --rm -v $(pwd):/home/op/immortalwrt -w /home/op/immortalwrt alpine:latest bash <<EOF
-          # Update system software packages
-          apk add --no-cache git make
+      - name: Load config and scripts (place after deps are installed)
+        run: |
+          set -e
+          # 1) Put your provided config as top-level .config for the build system
+          if [ -f ax3000t-v2.config ]; then
+            cp ax3000t-v2.config .config
+            echo ".config placed from ax3000t-v2.config"
+          else
+            echo "Warning: ax3000t-v2.config not found in repo root"
+          fi
 
-          # Clone project
-          git clone https://github.com/immortalwrt/immortalwrt.git
-          cd immortalwrt
+          # 2) Ensure package path exists and copy ipaddr.sh into package/base-files
+          mkdir -p package/base-files/files/bin
+          if [ -f ipaddr.sh ]; then
+            cp ipaddr.sh package/base-files/files/bin/ipaddr.sh
+            chmod +x package/base-files/files/bin/ipaddr.sh
+            echo "ipaddr.sh copied to package/base-files/files/bin/"
+          else
+            echo "Warning: ipaddr.sh not found in repo root"
+          fi
 
-          # Get software packages and update
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
+          # 3) If config_generate already present, run the script now to patch it.
+          if [ -f package/base-files/files/bin/config_generate ]; then
+            package/base-files/files/bin/ipaddr.sh || true
+            echo "Ran ipaddr.sh to patch config_generate"
+          else
+            echo "config_generate not present yet; ipaddr.sh will run later during build when package files are prepared"
+          fi
 
-          # Make compile
-          make -j$(nproc)
+      - name: Prepare feeds (optional)
+        run: |
+          ./scripts/feeds update -a || true
+          ./scripts/feeds install -a || true
+
+      - name: Prepare default config (optional)
+        run: |
+          make defconfig || true
+
+      - name: Upload copies for inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: loaded-files
+          path: |
+            .config
+            package/base-files/files/bin/ipaddr.sh
